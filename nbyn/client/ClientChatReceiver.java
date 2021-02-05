@@ -34,15 +34,23 @@ public class ClientChatReceiver implements Runnable {
     private void chatMessageHandler() throws IOException {
         while (!Thread.currentThread().isInterrupted()) {
             String jsonMessage = bufferedReader.readLine();
-            if (jsonMessage == null) { break; }
-
-            showMessage(getMessage(jsonMessage));
+            if (isMessage(jsonMessage)) {
+                showMessage(getMessage(parser(jsonMessage)));
+            } else {
+                throw new IOException();
         }
     }
 
-    private Map<String, String> getMessage(String message) {
-        JsonObject parseObject = (JsonObject) JsonParser.parseString(message);
-        JsonArray messageArray = (JsonArray) parseObject.get(roomName);
+    private boolean isMessage(String message) {
+        return parser(message).get(roomName) != null;
+    }
+
+    private JsonObject parser(String message) {
+        return (JsonObject) JsonParser.parseString(message);
+    }
+
+    private Map<String, String> getMessage(JsonObject parseMessage) {
+        JsonArray messageArray = (JsonArray) parseMessage.get(roomName);
         Map<String, String> result = new HashMap<>();
         for (int i = 0; i < messageArray.size(); i++) {
             JsonObject jsonData = (JsonObject) messageArray.get(i);
