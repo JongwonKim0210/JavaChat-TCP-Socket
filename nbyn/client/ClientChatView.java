@@ -20,7 +20,8 @@ public class ClientChatView implements Runnable {
     private Thread receiver;
     private Scanner scanner;
 
-    public ClientChatView(List<String> enterChatRooms, String userId, String userName, String roomName, BufferedReader reader, PrintWriter writer, Scanner scanner) {
+    public ClientChatView(List<String> enterChatRooms, String userId, String userName, String roomName,
+                          BufferedReader reader, PrintWriter writer, Scanner scanner) {
         this.enterChatRooms = enterChatRooms;
         this.userId = userId;
         this.userName = userName;
