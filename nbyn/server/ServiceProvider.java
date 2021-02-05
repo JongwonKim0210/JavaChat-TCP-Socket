@@ -79,12 +79,12 @@ public class ServiceProvider implements Runnable {
     }
 
     private boolean isMessage(String message) {
-        return parseMessage(message).get("service") == null;
+        return parser(message).get("service") == null;
     }
 
     private void checkOption(Map<String, String> message) {
         switch (Option.valueOf(message.get("option"))) {
-            case REMOVE:    // 클라이언트 종료
+            case REMOVE:    // 클라이언트 종료(단 1회만 이곳으로 진입 됨)
                 removeUser(message);
                 killSocket();
                 break;
@@ -119,7 +119,7 @@ public class ServiceProvider implements Runnable {
     }
 
     private void removeUser(Map<String, String> message) {  // 한번만 실행되는 메서드
-        broadcast.clear();           // 메시지 큐 비우기 -> 인터럽트로 에코서비스 종료
+        broadcast.clear();           // 메시지 큐 비우기 -> 인터럽트로 방송 종료
         messageSender.interrupt();
         for (int i = 0; i < (message.size() - 3); i++) {    // 전달받은 채팅방 목록 순회
             Map<String, PrintWriter> tempUserList = RoomManager.getUserList(message.get("roomName" + i));
@@ -157,7 +157,7 @@ public class ServiceProvider implements Runnable {
     }
 
     private Map<String, String> getOption(String message) {
-        JsonArray messageArray = (JsonArray) parseMessage(message).get("service");
+        JsonArray messageArray = (JsonArray) parser(message).get("service");
         Map<String, String> result = new HashMap<>();
         for (int i = 0; i < messageArray.size(); i++) {
             JsonObject jsonData = (JsonObject) messageArray.get(i);
@@ -171,11 +171,12 @@ public class ServiceProvider implements Runnable {
         return result;
     }
 
-    private JsonObject parseMessage(String message) {
+    private JsonObject parser(String message) {
         return  (JsonObject) JsonParser.parseString(message);
     }
 
     private String getRoomList() {
+        // TODO : String.valueOf()에서 변경되었음(오버로딩 관련 예외로 추측 중)
         return RoomManager.getRoomList().toString();
     }
 
