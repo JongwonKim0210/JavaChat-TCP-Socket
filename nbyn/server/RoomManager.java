@@ -1,36 +1,47 @@
 package lastproject.nbyn.server;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import java.io.PrintWriter;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class RoomManager {
+public class BroadcastService implements Runnable {
 
-    private static final Map<String, Map<String, PrintWriter>> ROOMS = new ConcurrentHashMap<>();
+    private final Queue<String> messageQueue = new ConcurrentLinkedQueue<>();
 
-    public static Map<String, PrintWriter> getUserList(String roomName) {
-        return ROOMS.get(roomName);
+    public void enQueue(String message) {
+        messageQueue.offer(message);
     }
 
-    public static Set<String> getRoomList() {
-        return ROOMS.keySet();
+    public void clear() {
+        messageQueue.clear();
     }
 
-    public static boolean isRemoveUser(String roomName, String uuid) {
-        return getUserList(roomName).remove(uuid) != null;
-    }
-
-    public static boolean isSetUser(String roomName, String uuid, PrintWriter printWriter) {
-        Map<String, PrintWriter> temp = getUserList(roomName);
-        if (temp == null) {
-            return false;
-        } else {
-            return temp.putIfAbsent(uuid, printWriter) == null;
+    @Override
+    public void run() {
+        while (!Thread.currentThread().isInterrupted()) {
+            String message = messageQueue.poll();
+            if (message != null) { sendMessage(findRoomName(message), message); }
         }
     }
 
-    public static boolean isSetChatRoom(String roomName) {
-        return (ROOMS.putIfAbsent(roomName, new ConcurrentHashMap<>()) == null);
+    private String findRoomName(String message) {
+        String findKey = null;
+        JsonObject parseObject = (JsonObject) JsonParser.parseString(message);
+        for (String key : parseObject.keySet()) {
+            findKey = key;
+        }
+
+        return findKey;
+    }
+
+    private void sendMessage(String roomName, String data) {
+        Map<String, PrintWriter> userList = RoomManager.getUserList(roomName);
+        for (PrintWriter writer : userList.values()) {
+            writer.println(data);
+        }
     }
 }
