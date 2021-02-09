@@ -38,7 +38,6 @@ public class Client {
             makeConnect();
             selectService(scanner);
         } catch (Exception e) {
-            log("채팅서버와 통신 중 연결이 끊어졌습니다.");
             e.printStackTrace();
         }
 
@@ -97,43 +96,37 @@ public class Client {
     private void requestRoomList() throws IOException {
         sendMessage(makeJson("userId", USER_ID, "userName", userName, "option", Option.REQUEST_ROOM_LIST.toString()));     // 예상되는 반환값 : success / 방 목록
         Map<String, String> message = messageHandler();
-        if (message != null && message.get("option").equals(Option.SUCCESS.toString())) {
+        if (isSuccess(message)) {
             log(message.get("message"));
         }
     }
 
     private void makeChatRoom(Scanner scanner) throws IOException {
-        log("원하시는 채팅방의 이름을 입력해주세요 단, ', ' 는 사용할 수 없습니다. / 되돌아가시려면 엔터를 눌러주세요");
-        System.out.print(" >> ");
-        String roomName = scanner.nextLine().replace(", ", ""); // 방 목록 구분자(, )는 없에주는 처리
+        String roomName = checkRoomName(scanner);
         if (roomName.equals("")) { return; }
 
         sendMessage(makeJson("userId", USER_ID, "userName", userName, "option", Option.CREATE_ROOM.toString(), "message", roomName));      // 예상되는 반환값 : success / 방 목록
         Map<String, String> message = messageHandler();
-        if (message != null && message.get("option").equals(Option.SUCCESS.toString())) {
+        if (isSuccess(message)) {
             log(roomName + "이(가) 생성되었습니다.");
             log(message.get("message"));   // 방 목록 전시
-            return;
+        } else {
+            log("채팅방을 개설하지 못했습니다.");
         }
-
-        log("채팅방을 개설하지 못했습니다.");
     }
 
     private void enterChatRoom(Scanner scanner) throws IOException {
-        log("원하시는 채팅방의 이름을 입력해주세요 / 되돌아가시려면 엔터를 눌러주세요");
-        System.out.print(" >> ");
-        String roomName = scanner.nextLine();
+        String roomName = checkRoomName(scanner);
         if (roomName.equals("")) { return; }
 
         sendMessage(makeJson("userId", USER_ID, "userName", userName, "option", Option.ENTER_ROOM.toString(), "message", roomName));    // 예상되는 반환값 : success, false
         Map<String, String> message = messageHandler();
-        if (message != null && message.get("option").equals(Option.SUCCESS.toString())) {
+        if (isSuccess(message)) {
             MY_CHAT_ROOM.add(roomName);
             new ClientChatView(MY_CHAT_ROOM, USER_ID, userName, roomName, reader, writer, scanner).run();
-            return;
+        } else {
+            log("입력하신 채팅방이 존재하지 않거나 입장되어 있습니다.");
         }
-
-        log("입력하신 채팅방이 존재하지 않거나 입장되어 있습니다.");
     }
 
     // 이하, 클라이언트 서비스 메서드 모음
@@ -142,16 +135,25 @@ public class Client {
         try {
             temp = reader.readLine();
         } catch (IOException e) {
-            log("통신 중 오류가 발생했습니다.");
-            throw new IOException();
+            throw new IOException("통신 중 오류가 발생했습니다.");
         }
 
         return getOption(temp);
     }
 
+    private String checkRoomName(Scanner scanner) {
+        log("원하시는 채팅방의 이름을 입력해주세요 단, ', ' 는 사용할 수 없습니다. / 되돌아가시려면 엔터를 눌러주세요");
+        System.out.print(" >> ");
+        return scanner.nextLine().replace(", ", ""); // 방 목록 구분자(, )는 없에주는 처리
+    }
+
+    private boolean isSuccess(Map<String, String> message) {
+        return message != null && message.get("option").equals(Option.SUCCESS.toString());
+    }
+
     private Map<String, String> getOption(String message) {
-        JsonObject parseObject = (JsonObject) JsonParser.parseString(message);
-        JsonArray messageArray = (JsonArray) parseObject.get("client");
+        JsonObject parseMessage = (JsonObject) JsonParser.parseString(message);
+        JsonArray messageArray = (JsonArray) parseMessage.get("client");
         if (messageArray == null) { return null; }
 
         Map<String, String> result = new HashMap<>();
@@ -177,7 +179,6 @@ public class Client {
         }
 
         jsonObject.add("service", jsonArray);
-
         return jsonObject.toString();
     }
 
@@ -201,11 +202,10 @@ public class Client {
     private String makeRemoveList() {
         JsonObject jsonObject = new JsonObject();
         JsonArray jsonArray = new JsonArray();
-        String[] jsonProperty = {"userId", "userName", "option"};
-        String[] jsonValue = {USER_ID, userName, Option.REMOVE.toString()};
-        for (int i = 0; i < jsonProperty.length; i++) { // 송신자 기본정보
+        String[] userInfo = {"userId", USER_ID, "userName", userName, "option", Option.REMOVE.toString()};
+        for (int i = 0; i < userInfo.length; i += 2) { // 송신자 기본정보
             JsonObject jsonInfo = new JsonObject();
-            jsonInfo.addProperty(jsonProperty[i], jsonValue[i]);
+            jsonInfo.addProperty(userInfo[i], userInfo[i + 1]);
             jsonArray.add(jsonInfo);
         }
 
