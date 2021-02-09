@@ -36,7 +36,8 @@ public class ClientChatReceiver implements Runnable {
             String jsonMessage = bufferedReader.readLine();
             if (isMessage(jsonMessage)) {
                 showMessage(getMessage(parser(jsonMessage)));
-            }
+            } else {
+                throw new IOException();
         }
     }
 
