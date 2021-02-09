@@ -62,7 +62,7 @@ public class ServiceProvider implements Runnable {
         while (socket.getKeepAlive()) {
             String jsonMessage = bufferedReader.readLine();
             if (jsonMessage == null) {
-                throw new IOException("클라이언트와 연결이 해제되었습니다.");
+                throw new IOException("원인불명의 사유로 클라이언트와 연결이 해제되었습니다.");
             }
 
             System.out.println(jsonMessage);   // 서버단 로그(메시지 유통 확인)
@@ -106,7 +106,6 @@ public class ServiceProvider implements Runnable {
         String roomName = message.get("message");
         String[] keys = message.keySet().toArray(new String[0]);
         String[] keyValues = new String[keys.length * 2];
-
         for (int i = 0, j = 0; i < keys.length; i++, j += 2) {
             keyValues[j] = keys[i];
             keyValues[j + 1] = message.get(keys[i]);
@@ -121,12 +120,12 @@ public class ServiceProvider implements Runnable {
     private void removeUser(Map<String, String> message) {  // 한번만 실행되는 메서드
         broadcast.clear();           // 메시지 큐 비우기 -> 인터럽트로 방송 종료
         messageSender.interrupt();
-        for (int i = 0; i < (message.size() - 3); i++) {    // 전달받은 채팅방 목록 순회
+        for (int i = 0; i < (message.size() - 3); i++) {    // message.size() : 채팅방 갯수 + 3(userId, userName, option)
             Map<String, PrintWriter> tempUserList = RoomManager.getUserList(message.get("roomName" + i));
             tempUserList.remove(message.get("userId"));    // 채팅방에서 날 삭제
-            for (PrintWriter writer : tempUserList.values()) {  // 접속 유저들 대상 퇴장메시지 송신
+            for (PrintWriter writer : tempUserList.values()) {  // 채팅방 잔여 유저들 대상 메시지 송신
                 writer.println(makeJson(message.get("roomName" + i),
-                                              "userName", message.get("userName"), "option", Option.QUIT.toString()));
+                                  "userName", message.get("userName"), "option", Option.QUIT.toString()));
             }
         }
     }
@@ -176,7 +175,7 @@ public class ServiceProvider implements Runnable {
     }
 
     private String getRoomList() {
-        // TODO : String.valueOf()에서 변경되었음(오버로딩 관련 예외로 추측 중)
+        // TODO : String.valueOf()에서 변경됨(오버로딩으로 인한 예외 추측)
         return RoomManager.getRoomList().toString();
     }
 
