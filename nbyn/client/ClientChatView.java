@@ -37,7 +37,7 @@ public class ClientChatView implements Runnable {
             System.out.println(roomName + "에 입장하셨습니다.");
             System.out.println("나가시려면 '나가기' 를(을) 입력해주세요");
             sender(makeJson(roomName, userId, userName, Option.JOIN.toString(), null));
-            makeChatReceiver(reader, userId, roomName);
+            makeChatReceiver();
             chatting(scanner);
         } catch (Exception e) {
             e.printStackTrace();
@@ -45,8 +45,8 @@ public class ClientChatView implements Runnable {
     }
 
     // 이 채팅방으로 들어오는 메시지수신기 초기화 / 이 스레드가 종료되면 채팅방도 자동종료(메시지 전시 안되는 시점에서 오류)
-    private void makeChatReceiver(BufferedReader reader, String userId, String roomName) {
-        receiver = new Thread(new ClientChatReceiver(reader, userId, roomName), "receiver");
+    private void makeChatReceiver() {
+        receiver = new Thread(new ClientChatReceiver(reader, userId, roomName));
         receiver.start();
     }
 
@@ -55,7 +55,7 @@ public class ClientChatView implements Runnable {
         while (true) {
             System.out.print(" >> ");
             message = scanner.nextLine();
-            if (message.equals("나가기") || !receiver.isAlive()) {    // readLine() 정상동작 불가 시 receiver interrupt 발생
+            if (message.equals("나가기") || !receiver.isAlive()) {
                 quit();
                 break;
             }
@@ -86,7 +86,6 @@ public class ClientChatView implements Runnable {
         }
 
         jsonObject.add(roomName, jsonArray);
-
         return jsonObject.toString();
     }
 }
